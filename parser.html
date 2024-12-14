@@ -45,6 +45,50 @@
         .hidden {
             display: none;
         }
+
+        /* Slider Toggle Styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 34px;
+            transition: 0.4s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.4s;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
     </style>
 </head>
 <body>
@@ -61,41 +105,51 @@
         <br><br> <!-- Additional line break -->
     </div>
 
-    <label for="startPage">Start Page:</label>
-    <select id="startPage">
-        <option value="" disabled selected>Select Start Page</option>
-        <option value="4">Page 4</option>
-        <option value="5">Page 5</option>
-        <option value="6">Page 6</option>
-        <option value="7">Page 7</option>
-        <option value="8">Page 8</option>
-        <option value="9">Page 9</option>
-        <option value="10">Page 10</option>
-        <option value="11">Page 11</option>
-        <option value="12">Page 12</option>
-        <option value="13">Page 13</option>
-        <option value="14">Page 14</option>
-        <option value="15">Page 15</option>
-    </select>
-    <br>
-    <label for="endPage">End Page:</label>
-    <select id="endPage">
-        <option value="" disabled selected>Select End Page</option>
-        <option value="4">Page 4</option>
-        <option value="5">Page 5</option>
-        <option value="6">Page 6</option>
-        <option value="7">Page 7</option>
-        <option value="8">Page 8</option>
-        <option value="9">Page 9</option>
-        <option value="10">Page 10</option>
-        <option value="11">Page 11</option>
-        <option value="12">Page 12</option>
-        <option value="13">Page 13</option>
-        <option value="14">Page 14</option>
-        <option value="15">Page 15</option>
-    </select>
-    <br>
-    <button onclick="parseFile()">Parse File</button>
+    <!-- UID Only Mode Toggle -->
+    <label for="uidOnlyMode" class="switch">
+        <input type="checkbox" id="uidOnlyMode" onchange="toggleUIDOnlyMode()">
+        <span class="slider"></span>
+    </label>
+    <label for="uidOnlyMode">UID Only Mode</label>
+    <br><br> <!-- Line breaks dividing them -->
+
+    <div id="pageSelection">
+        <label for="startPage">Start Page:</label>
+        <select id="startPage">
+            <option value="" disabled selected>Select Start Page</option>
+            <option value="4">Page 4</option>
+            <option value="5">Page 5</option>
+            <option value="6">Page 6</option>
+            <option value="7">Page 7</option>
+            <option value="8">Page 8</option>
+            <option value="9">Page 9</option>
+            <option value="10">Page 10</option>
+            <option value="11">Page 11</option>
+            <option value="12">Page 12</option>
+            <option value="13">Page 13</option>
+            <option value="14">Page 14</option>
+            <option value="15">Page 15</option>
+        </select>
+        <br>
+        <label for="endPage">End Page:</label>
+        <select id="endPage">
+            <option value="" disabled selected>Select End Page</option>
+            <option value="4">Page 4</option>
+            <option value="5">Page 5</option>
+            <option value="6">Page 6</option>
+            <option value="7">Page 7</option>
+            <option value="8">Page 8</option>
+            <option value="9">Page 9</option>
+            <option value="10">Page 10</option>
+            <option value="11">Page 11</option>
+            <option value="12">Page 12</option>
+            <option value="13">Page 13</option>
+            <option value="14">Page 14</option>
+            <option value="15">Page 15</option>
+        </select>
+        <br>
+    </div>
+    <button id="parseButton" onclick="parseFile()">Parse File</button>
     <h2 id="cardTypeHeader"></h2>
     <h2>Parsed Output:</h2>
     <div id="parsedOutput"></div>
@@ -107,6 +161,22 @@
         const copyButton = document.getElementById('copyButton');
         const yotoUrlSection = document.getElementById('yotoUrlSection');
         const yotoUrl = document.getElementById('yotoUrl');
+        const uidOnlyModeCheckbox = document.getElementById('uidOnlyMode');
+        const pageSelection = document.getElementById('pageSelection');
+        const parseButton = document.getElementById('parseButton');
+
+        let uidOnlyMode = false;
+
+        function toggleUIDOnlyMode() {
+            uidOnlyMode = uidOnlyModeCheckbox.checked;
+            if (uidOnlyMode) {
+                pageSelection.style.display = 'none'; // Hide Start Page and End Page
+                parseButton.textContent = 'Show UID'; // Change button text
+            } else {
+                pageSelection.style.display = 'block'; // Show Start Page and End Page
+                parseButton.textContent = 'Parse File'; // Revert button text
+            }
+        }
 
         function handleFileUpload() {
             const fileInput = document.getElementById('fileInput');
@@ -161,7 +231,7 @@
             const startPage = parseInt(startPageSelect.value);
             const endPage = parseInt(endPageSelect.value);
 
-            if (isNaN(startPage) || isNaN(endPage) || startPage > endPage) {
+            if (!uidOnlyMode && (isNaN(startPage) || isNaN(endPage) || startPage > endPage)) {
                 alert('Invalid start or end page.');
                 return;
             }
@@ -169,7 +239,7 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 const content = event.target.result;
-                const { parsedContent, cardType, yotoLink } = parseXml(content, startPage, endPage);
+                const { parsedContent, cardType, yotoLink, uidData } = parseXml(content, startPage, endPage);
 
                 if (cardType === 'MIFARE Ultralight EV1 (MF0UL11)') {
                     cardTypeHeader.innerHTML = '<span class="error">Invalid Card Type. Card MUST be a MIFARE Ultralight EV1 (MF0UL11)</span>';
@@ -177,8 +247,15 @@
                     copyButton.style.display = 'none';
                     yotoUrlSection.style.display = 'none';
                 } else {
-                    cardTypeHeader.innerHTML = `Card Type: <b>${cardType}</b>`;
-                    parsedOutput.textContent = parsedContent;
+                    if (uidOnlyMode) {
+                        // Display "UID:" above "Card Type:"
+                        cardTypeHeader.innerHTML = `UID: <b>${uidData}</b><br>Card Type: <b>${cardType}</b>`;
+                        // Display UID without spaces in the code block
+                        parsedOutput.textContent = uidData.replace(/\s/g, '');
+                    } else {
+                        cardTypeHeader.innerHTML = `Card Type: <b>${cardType}</b>`;
+                        parsedOutput.textContent = parsedContent;
+                    }
                     copyButton.style.display = 'inline-block';
 
                     // Display Yoto URL if applicable
@@ -203,11 +280,24 @@
             let cardType = 'MIFARE Ultralight EV1 (MF0UL11)';
             let yotoLink = null;
             let isMagicCard = false; // Flag to detect "Ultimate Magic Card"
+            let uidData = ''; // To store UID data
 
             // Check for Yoto URL
             const uriBlock = xmlDoc.querySelector('block[type="text"] content url');
             if (uriBlock && uriBlock.getAttribute('link').includes('https://yoto.io/')) {
                 yotoLink = uriBlock.getAttribute('link');
+            }
+
+            // Extract UID from "Detailed Protocol Information" section
+            const detailedProtocolBlock = xmlDoc.querySelector('subsection[title="Detailed Protocol Information"] block[type="text"]');
+            if (detailedProtocolBlock) {
+                const content = detailedProtocolBlock.querySelector('content')?.textContent.trim();
+                if (content && content.includes('ID:')) {
+                    const idMatch = content.match(/ID: ([0-9A-F:]+)/);
+                    if (idMatch && idMatch[1]) {
+                        uidData = idMatch[1].replace(/:/g, ' '); // Replace colons with spaces
+                    }
+                }
             }
 
             blocks.forEach((block, index) => {
@@ -243,7 +333,7 @@
                 cardType = 'Yoto Audio Card';
             }
 
-            return { parsedContent: result, cardType, yotoLink };
+            return { parsedContent: result, cardType, yotoLink, uidData };
         }
 
         function copyToClipboard() {
