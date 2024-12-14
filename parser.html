@@ -120,8 +120,9 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 const content = event.target.result;
-                const { cardType, yotoLink } = parseXml(content);
+                const { cardType, yotoLink } = parseXml(content); // Parse the XML to determine the card type and Yoto URL
 
+                // Display the card type immediately
                 if (cardType === 'MIFARE Ultralight EV1 (MF0UL11)') {
                     cardTypeHeader.innerHTML = '<span class="error">Invalid Card Type. Card MUST be a MIFARE Ultralight EV1 (MF0UL11)</span>';
                     parsedOutput.textContent = '';
@@ -197,28 +198,50 @@
         function parseXml(xmlContent, startPage = 0, endPage = 0) {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-            const title = xmlDoc.querySelector('title').textContent.trim().replace(' tag', '');
-            const blocks = xmlDoc.querySelectorAll('block[type="Ultralight"]');
+            const blocks = xmlDoc.querySelectorAll('block'); // Select all blocks, regardless of type
             let result = '';
             let cardType = 'MIFARE Ultralight EV1 (MF0UL11)';
             let yotoLink = null;
+            let isMagicCard = false; // Flag to detect "Ultimate Magic Card"
 
-            // Check for Yoto Audio Card
+            // Check for Yoto URL
             const uriBlock = xmlDoc.querySelector('block[type="text"] content url');
             if (uriBlock && uriBlock.getAttribute('link').includes('https://yoto.io/')) {
-                cardType = 'Yoto Audio Card';
                 yotoLink = uriBlock.getAttribute('link');
-            } else if (title.includes('MIFARE Ultralight (unknown type) (MF0ICU1)')) {
-                cardType = 'MIFARE Ultralight (unknown type) (MF0ICU1)';
             }
 
-            blocks.forEach(block => {
-                const address = parseInt(block.querySelector('address').textContent.trim());
-                if (address >= startPage && address <= endPage) {
-                    const data = block.querySelector('data').textContent.trim().replace(/\s+/g, '');
-                    result += data;
+            blocks.forEach((block, index) => {
+                const address = parseInt(block.querySelector('address')?.textContent.trim());
+                const blockType = block.getAttribute('type');
+
+                // Check if the block contains an address and it is within the specified range
+                if (!isNaN(address) && address >= startPage && address <= endPage) {
+                    // Check the block directly above the current block
+                    const previousBlock = blocks[index - 1];
+                    if (previousBlock) {
+                        if (previousBlock.getAttribute('type') === 'Ultralight') {
+                            cardType = 'MIFARE Ultralight';
+                        } else {
+                            isMagicCard = true; // Set flag for "Ultimate Magic Card"
+                        }
+                    } else {
+                        isMagicCard = true; // Set flag for "Ultimate Magic Card"
+                    }
+
+                    // Process the data
+                    const data = block.querySelector('data')?.textContent.trim().replace(/\s+/g, '');
+                    if (data) {
+                        result += data;
+                    }
                 }
             });
+
+            // Prioritize "Ultimate Magic Card" over "Yoto Audio Card"
+            if (isMagicCard) {
+                cardType = 'Ultimate Magic Card';
+            } else if (yotoLink) {
+                cardType = 'Yoto Audio Card';
+            }
 
             return { parsedContent: result, cardType, yotoLink };
         }
